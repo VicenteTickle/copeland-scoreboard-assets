@@ -1,1 +1,1 @@
-PLACEHOLDER_LOAD_FROM_FILE
+FILE_REF:/tmp/scoreboard_exact.js
