@@ -1,0 +1,25 @@
+ money(v,sign){if(v===null||v===undefined)return '—';var a=Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});var s=v<0?'−':(sign&&v>0?'+':'');return s+'$'+a}
+function cls(v){if(v===null||v===undefined)return 'flat';return v>0?'up':v<0?'dn':'flat'}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function fillSign(f){if(!f)return 0;var m=String(f).match(/([+−-])\s*\$?\s*([\d.]+)/);if(!m)return 0;var n=parseFloat(m[2]);if(!n)return 0;return m[1]==='+'?1:-1}
+function isFlat(p){p=str(p).toLowerCase();return !p||p==='flat'||p==='0'||p==='none'||p==='—'}
+function shortWhen(w){w=str(w);var m=w.match(/(\d{1,2}:\d{2}\s*[AP]M)/i);return m?m[1].toUpperCase().replace(/\s+/,''):(w.length>10?w.slice(5,10):w)}
+function etParts(){var p={};try{new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'numeric',hour12:false}).formatToParts(new Date()).forEach(function(x){p[x.type]=x.value})}catch(e){var d=new Date();p.hour=d.getHours();p.minute=d.getMinutes()}return {h:(+p.hour)%24,m:+p.minute}}
+function nowET(){try{return new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit'})+' ET'}catch(e){return new Date().toLocaleTimeString()}}
+function toast(m){var t=$('sb-toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('show')},2600)}
+function reduced(){return matchMedia('(prefers-reduced-motion: reduce)').matches}
+function confetti(color){if(reduced())return;for(var i=0;i<28;i++){var d=document.createElement('i');d.className='confetti';d.style.left=Math.random()*100+'vw';d.style.background=i%3?color:'#fff';d.style.animationDelay=(Math.random()*.6)+'s';d.style.transform='rotate('+Math.random()*360+'deg)';$('sb').appendChild(d);setTimeout(function(x){x.remove()}.bind(null,d),3000)}}
+function emotes(host,kind){if(reduced()||!host)return;var set=EMOTES[kind]||EMOTES.buy;for(var i=0;i<7;i++){var e=document.createElement('span');e.className='emote';e.textContent=set[i%set.length];e.style.setProperty('--dx',(Math.random()*90-45)+'px');e.style.setProperty('--dy',(-40-Math.random()*50)+'px');e.style.setProperty('--rot',(Math.random()*60-30)+'deg');e.style.animationDelay=(i*.08)+'s';host.appendChild(e);setTimeout(function(x){x.remove()}.bind(null,e),2000)}}
+
+/* ====== gviz loader ====== */
+var cbN=0;
+function gvizUrl(id,cb){return 'https://docs.google.com/spreadsheets/d/'+id+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&_='+Date.now()}
+function loadSheet(id){
+  /* fetch with an 8s abort (gviz sends CORS headers); JSONP script tag as fallback */
+  var ctl=(typeof AbortController!=='undefined')?new AbortController():null;var to=setTimeout(function(){if(ctl)ctl.abort()},8000);
+  return fetch(gvizUrl(id,'sbJson'),{cache:'no-store',signal:ctl?ctl.signal:undefined}).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.text()}).then(function(t){
+    clearTimeout(to);var a=t.indexOf('('),b=t.lastIndexOf(')');if(a<0||b<0)throw new Error('shape');
+    return parseGviz(JSON.parse(t.slice(a+1,b)));
+  }).catch(function(){clearTimeout(to);return loadSheetJsonp(id)});
+}
+fu
