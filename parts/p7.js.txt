@@ -1,0 +1,39 @@
+  el.style.setProperty('--c',b.color);
+  el.innerHTML=avatar(b,'lg '+(kind==='win'?'win':kind==='loss'?'loss':''))+'<div><div class="ev-k">'+esc(b.display_name)+'</div><div class="ev-t '+(kind==='win'?'up':kind==='loss'?'dn':'')+'">'+esc(title)+'</div><div class="ev-s">'+esc(sub)+'</div></div>';
+  el.classList.add('show');
+  var lane=document.querySelector('#sb .lane[data-bot="'+f.bot+'"]');
+  if(lane){var av=lane.querySelector('.av'),bub=lane.querySelector('.bubble');av.classList.remove('win','loss');void av.offsetWidth;if(kind!=='buy')av.classList.add(kind);emotes(lane.querySelector('.runner'),kind);bub.textContent=title.toUpperCase();bub.classList.add('show');setTimeout(function(){bub.classList.remove('show')},5000)}
+  var card=document.querySelector('#sb .card[data-bot="'+f.bot+'"]');if(card){card.classList.remove('pop');void card.offsetWidth;card.classList.add('pop');emotes(card,kind)}
+  if(kind==='win')confetti(b.color);
+}
+function pumpEvents(){if(evBusy||!evQueue.length)return;evBusy=true;var f=evQueue.shift();showEvent(f);setTimeout(function(){$('sb-event').classList.remove('show');evBusy=false;setTimeout(pumpEvents,400)},3600)}
+
+function render(prev){
+  renderHouse();renderRace();renderTicker();renderBackers();renderCards();renderTabs();var newFills=renderTape();
+  $('sb-stamp').textContent='Last checked '+nowET()+' · polls every '+(POLL_MS/1000)+'s · Score Keeper is the only writer';
+  if(prev&&liveOnce&&newFills&&newFills.length){newFills.slice(-4).forEach(function(f){evQueue.push(f)});pumpEvents();toast(newFills.length+' new fill'+(newFills.length>1?'s':'')+' booked')}
+  first=false;
+}
+function setLive(mode,text){var l=$('sb-live');l.className='live '+mode;$('sb-live-t').textContent=text}
+
+/* ====== poll loop ====== */
+function tick(){
+  Promise.all([loadSheet(SHEETS.snapshot),loadSheet(SHEETS.bots),loadSheet(SHEETS.fills)]).then(function(r){
+    var next=normalize({snapshot:r[0],bots:r[1],fills:r[2]});
+    var sig=JSON.stringify(next);var prev=state;
+    if(sig!==prevSig.s||!prev){prevSig.s=sig;state=next;render(prev)}else{$('sb-stamp').textContent='Last checked '+nowET()+' · polls every '+(POLL_MS/1000)+'s · Score Keeper is the only writer';renderRent()}
+    setLive('on','Live');liveOnce=true;
+  }).catch(function(e){
+    if(!state){state=normalize(SEED);render(null)}
+    setLive('off','Offline · last known');
+  }).then(function(){timer=setTimeout(tick,POLL_MS)});
+}
+document.addEventListener('click',function(e){
+  var a=e.target.closest&&e.target.closest('#sb .tip');if(a){if(a.getAttribute('href').charAt(0)==='#'){e.preventDefault();toast('Tip jar for '+botOf(a.getAttribute('data-bot')).display_name+' opens soon — nothing charged.')}return}
+  var t=e.target.closest&&e.target.closest('#sb .tab');if(t){tapeFilter=t.getAttribute('data-f');renderTabs();var keep=seenFills;renderTape();seenFills=keep}
+});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){clearTimeout(timer);tick()}});
+function boot(){if(!$('sb-lanes')){return setTimeout(boot,50)}setInterval(renderRent,60000);state=normalize(SEED);render(null);setLive('sync','Syncing');tick()}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot)}else{boot()}
+})();
+
