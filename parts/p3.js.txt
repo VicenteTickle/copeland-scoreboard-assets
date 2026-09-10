@@ -1,0 +1,34 @@
+nction loadSheetJsonp(id){
+  return new Promise(function(res,rej){
+    var cb='sbCb'+(++cbN)+'_'+Date.now();var s=document.createElement('script');var done=false;
+    window[cb]=function(json){done=true;cleanup();try{res(parseGviz(json))}catch(e){rej(e)}};
+    function cleanup(){delete window[cb];s.remove();clearTimeout(t)}
+    var t=setTimeout(function(){if(!done){cleanup();rej(new Error('timeout'))}},9000);
+    s.onerror=function(){if(!done){cleanup();rej(new Error('load'))}};
+    s.src=gvizUrl(id,cb);document.head.appendChild(s);
+  });
+}
+function parseGviz(j){
+  if(!j||!j.table)throw new Error('bad');
+  var cols=j.table.cols.map(function(c){return str(c.label||c.id).toLowerCase().replace(/\s+/g,'_')});
+  return j.table.rows.map(function(r){var o={};r.c.forEach(function(c,i){if(!cols[i])return;if(!c){o[cols[i]]=null;return}var v=c.v;if(v instanceof Date)v=c.f||fmtDate(v);o[cols[i]]=v});return o})
+    .filter(function(o){return Object.keys(o).some(function(k){return o[k]!==null&&o[k]!==''})});
+}
+
+/* ====== normalize ====== */
+function normalize(raw){
+  var snapRows=raw.snapshot||[];if(!Array.isArray(snapRows))snapRows=[snapRows];var s=snapRows.filter(function(r){return str(r.slug)==='today'})[0]||snapRows[0]||{};
+  var snap={updated_et:str(s.updated_et),combined_sleeve:num(s.combined_sleeve),shared_rh_cash:num(s.shared_rh_cash),realized_pnl_all:num(s.realized_pnl_all),realized_pnl_today:num(s.realized_pnl_today),revenue_receipt:num(s.revenue_receipt),rent_deducted:num(s.rent_deducted),net_vs_open:num(s.net_vs_open),headline:str(s.headline)};
+  var bots=(raw.bots||[]).filter(function(b){return str(b.slug)}).map(function(b,i){var slug=str(b.slug).toLowerCase();var ch=CHARS[slug]||CHARS._default;return {slug:slug,display_name:str(b.display_name)||slug,sleeve_cash:num(b.sleeve_cash),rh_cash:num(b.rh_cash),positions:str(b.positions),last_fill:str(b.last_fill),pnl_today:num(b.pnl_today),pnl_all:num(b.pnl_all),net_vs_open:num(b.net_vs_open),status:(str(b.status)||'active').toLowerCase(),color:str(b.color)||ch.color||PALETTE[i%PALETTE.length],tagline:str(b.tagline)||ch.tagline,svg:ch.svg,tip_url:str(b.tip_url)}});
+  var fills=(raw.fills||[]).filter(function(f){return str(f.ticker)||str(f.bot)}).map(function(f){return {when_et:str(f.when_et),bot:str(f.bot).toLowerCase(),side:str(f.side).toLowerCase(),ticker:str(f.ticker).toUpperCase(),qty:num(f.qty),price:num(f.price),fees:num(f.fees),pnl:num(f.pnl),cash_after:num(f.cash_after)}});
+  return {snapshot:snap,bots:bots,fills:fills};
+}
+function botOf(slug){return (state.bots.filter(function(b){return b.slug===slug})[0])||{slug:slug,display_name:slug,color:'#8b96a3',svg:CHARS._default.svg,tagline:''}}
+function fillKey(f,i){return [f.when_et,f.bot,f.side,f.ticker,f.qty,f.price,f.pnl,f.cash_after,i].join('|')}
+function ranked(){return state.bots.slice().sort(function(a,b){return (b.pnl_all||0)-(a.pnl_all||0)})}
+function fillKind(f){return f.side==='buy'?'buy':(f.pnl>0?'win':f.pnl<0?'loss':'buy')}
+
+/* ====== render ====== */
+function avatar(b,extra){return '<div class="av '+(extra||'')+'" style="--c:'+esc(b.color)+'">'+b.svg+'</div>'}
+function moodClass(b){var s=fillSign(b.last_fill);if(s===0&&b.pnl_today)s=b.pnl_today>0?1:-1;return s>0?'win':s<0?'loss':''}
+function ti
