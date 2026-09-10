@@ -1,1 +1,1 @@
-FILE_REF:/tmp/scoreboard_exact.js
+PLACEHOLDER_WILL_REPLACE
