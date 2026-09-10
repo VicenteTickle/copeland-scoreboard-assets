@@ -1,0 +1,24 @@
+(b.last_fill))+'">'+esc(b.last_fill||'—')+'</div></div><div><div class="k">Net vs open</div><div class="v sm '+cls(b.net_vs_open)+'">'+money(b.net_vs_open,true)+'</div></div></div>'+
+    '<div class="moves"><div class="k">'+esc(b.display_name)+'\'s last moves</div>'+(moves.length?moves.map(function(f){return '<div class="mv"><span class="t">'+esc(shortWhen(f.when_et)||'—')+'</span><span class="s '+esc(f.side)+'">'+esc(f.side.toUpperCase())+'</span><b>'+esc(f.ticker)+'</b>'+(f.qty!==null?'<span style="color:var(--mute)">×'+f.qty+'</span>':'')+'<span class="p '+(f.side==='buy'?'flat':cls(f.pnl))+'">'+(f.side==='buy'?(f.price!==null?'@ '+money(f.price):'opened'):money(f.pnl,true))+'</span></div>'}).join(''):'<div class="mv"><span class="t">—</span>No moves yet</div>')+'</div>'+
+    '<div class="tips"><span class="k">Tip jar</span>'+[1,5,10].map(function(a){return '<a class="tip" href="'+esc(tipHref(b,a))+'" data-bot="'+esc(b.slug)+'" '+(b.tip_url?'target="_blank" rel="noopener"':'')+'>$'+a+'</a>'}).join('')+'</div></div>';
+  }).join('');
+  requestAnimationFrame(function(){document.querySelectorAll('#sb .bar i').forEach(function(x){x.style.width=x.getAttribute('data-w')+'%'})});
+}
+function renderTabs(){
+  $('sb-tabs').innerHTML='<button class="tab'+(tapeFilter==='all'?' on':'')+'" data-f="all">All bots</button>'+ranked().map(function(b){return '<button class="tab'+(tapeFilter===b.slug?' on':'')+'" data-f="'+esc(b.slug)+'" data-c style="--c:'+esc(b.color)+'">'+esc(b.display_name)+'</button>'}).join('');
+}
+function renderTape(){
+  var all=state.fills.map(function(f,i){f._k=fillKey(f,i);return f});
+  var rows=all.filter(function(f){return tapeFilter==='all'||f.bot===tapeFilter}).slice(-TAPE_N).reverse();
+  var newSet=seenFills?all.filter(function(f){return !seenFills[f._k]}):[];
+  if(!rows.length){$('sb-tape').innerHTML='<div class="empty">No fills booked yet.</div>'}else{
+  $('sb-tape').innerHTML='<table><thead><tr><th>When (ET)</th><th>Bot</th><th>Side</th><th>Ticker</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Fees</th><th class="r">P/L</th><th class="r">Cash after</th></tr></thead><tbody>'+
+    rows.map(function(f){var b=botOf(f.bot);return '<tr class="'+(newSet.indexOf(f)>-1?'new':'')+'"><td>'+esc(f.when_et||'—')+'</td><td><span class="botname" style="--c:'+esc(b.color)+'">'+esc(b.display_name)+'</span></td><td><span class="side '+esc(f.side)+'">'+esc(f.side.toUpperCase()||'—')+'</span></td><td><b>'+esc(f.ticker||'—')+'</b></td><td class="r">'+(f.qty===null?'—':f.qty)+'</td><td class="r">'+money(f.price)+'</td><td class="r">'+money(f.fees)+'</td><td class="r '+(f.side==='buy'?'flat':cls(f.pnl))+'">'+(f.side==='buy'?'—':money(f.pnl,true))+'</td><td class="r">'+money(f.cash_after)+'</td></tr>'}).join('')+'</tbody></table>'}
+  seenFills={};all.forEach(function(f){seenFills[f._k]=1});
+  return newSet;
+}
+/* ====== events ====== */
+function showEvent(f){
+  var b=botOf(f.bot);var kind=fillKind(f);var el=$('sb-event');
+  var title=f.side==='buy'?'Bought '+f.ticker:'Sold '+f.ticker+' '+money(f.pnl,true);
+  var sub=(f.when_et?shortWhen(f.when_et)+' ET · ':'')+(f.qty!==null?f.qty+' × ':'')+(f.price!==null?money(f.price):'')+(kind==='win'?' · cha-ching':kind==='loss'?' · oof':' · position open');
