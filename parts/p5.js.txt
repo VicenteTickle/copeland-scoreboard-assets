@@ -1,0 +1,29 @@
+ tile('Rent deducted',s.rent_deducted!==null?-Math.abs(s.rent_deducted):null,s.rent_deducted?'dn':'','Every morning after 8am','','rent')+
+    tile('Revenue receipts',s.revenue_receipt,'','No receipt = $0','','rev')+
+    tile('Opening stake',OPEN_STAKE,'','What the house started with','','open')+
+    '<div class="rentbar"><div class="rk"><span>Landlord clock · <b>$'+(s.rent_deducted||108)+'</b> due at 8:00 AM ET</span><span id="sb-rent-t"></span></div><div class="rt"><i id="sb-rent-i"></i><em>🏠</em></div></div>';
+  document.querySelectorAll('#sb-house .v[data-key]').forEach(function(el){var k=el.getAttribute('data-key'),v=el.getAttribute('data-n');if(prevVals[k]!==undefined&&prevVals[k]!==v){el.classList.add('bump')}prevVals[k]=v});
+  renderRent();
+  $('sb-updated').textContent='Books as of '+(s.updated_et||'—');
+  if(s.headline)$('sb-headline').textContent=s.headline;
+}
+function renderRent(){
+  var t=etParts();var mins=(t.h*60+t.m-8*60+1440)%1440;var left=1440-mins;var i=$('sb-rent-i'),lab=$('sb-rent-t');if(!i)return;
+  i.style.width=(mins/1440*100).toFixed(1)+'%';lab.textContent='next rent in '+Math.floor(left/60)+'h '+p2(left%60)+'m';
+}
+function botFills(slug){return state.fills.filter(function(f){return f.bot===slug})}
+function nowLine(b){
+  var hold=!isFlat(b.positions);var last=botFills(b.slug).slice(-1)[0];
+  if(b.status==='paused'||b.status==='benched')return 'On the bench · not trading';
+  if(hold)return 'Holding <b>'+esc(b.positions)+'</b> · waiting for the exit';
+  if(last)return 'Flat · last move '+esc(last.side.toUpperCase())+' '+esc(last.ticker)+(last.side==='sell'?' <b class="'+cls(last.pnl)+'">'+money(last.pnl,true)+'</b>':'')+' · hunting the next one';
+  return 'Flat · no fills yet';
+}
+function renderCards(){
+  $('sb-cards').innerHTML=ranked().map(function(b,i){
+    var hold=!isFlat(b.positions);var pct=b.sleeve_cash?Math.max(0,Math.min(100,(b.rh_cash||0)/b.sleeve_cash*100)):0;
+    var moves=botFills(b.slug).slice(-MOVES_N).reverse();
+    return '<div class="card" style="--c:'+esc(b.color)+'" data-bot="'+esc(b.slug)+'"><div class="card-h">'+avatar(b,'sm'+(hold?' hold':''))+'<div><div class="name">'+esc(b.display_name)+'</div><div class="tl">'+esc(b.tagline)+'</div><div class="meta"><span class="pill">#'+(i+1)+'</span><span class="pill st-'+esc(b.status)+'">'+esc(b.status)+'</span>'+(hold?'<span class="pill hold">Holding '+esc(b.positions)+'</span>':'<span class="pill">Flat</span>')+'</div></div></div>'+
+    '<div class="now"><span class="dot"></span><span><span class="k">Now · </span>'+nowLine(b)+'</span></div>'+
+    '<div class="money"><div class="k">Sleeve · this bot\'s money</div><div class="v" data-key="s-'+esc(b.slug)+'" data-n="'+(b.sleeve_cash===null?'':b.sleeve_cash)+'">'+money(b.sleeve_cash)+'</div><div class="bar"><i data-w="'+pct.toFixed(1)+'"></i></div><div class="bar-n"><span>RH cash '+money(b.rh_cash)+'</span><span>'+pct.toFixed(0)+'% in Robinhood</span></div></div>'+
+    '<div class="stats"><div><div class="k">P/L today</div><div class="v '+cls(b.pnl_today)+'">'+money(b.pnl_today,true)+'</div></div><div><div class="k">P/L all-time</div><div class="v '+cls(b.pnl_all)+'">'+money(b.pnl_all,true)+'</div></div><div><div class="k">Last fill</div><div class="v sm '+cls(fillSign
