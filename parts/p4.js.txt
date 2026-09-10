@@ -1,0 +1,31 @@
+psHtml(b){return '<div class="tips">'+[1,5,10].map(function(a){return '<a class="tip" href="'+esc(tipHref(b,a))+'" data-bot="'+esc(b.slug)+'" '+(b.tip_url?'target="_blank" rel="noopener"':'')+'>$'+a+'</a>'}).join('')+'</div>'}
+function tipHref(b,a){if(!b.tip_url)return '#tip-'+b.slug;return b.tip_url+(b.tip_url.indexOf('?')>-1?'&':'?')+'amount='+a+'&bot='+encodeURIComponent(b.slug)}
+
+function renderRace(){
+  var bots=ranked();
+  var vals=bots.map(function(b){return b.pnl_all||0});var mn=Math.min.apply(null,vals.concat([0])),mx=Math.max.apply(null,vals.concat([0]));var span=(mx-mn)||1;
+  $('sb-lanes').innerHTML=bots.map(function(b,i){
+    var pos=12+76*(((b.pnl_all||0)-mn)/span);var hold=!isFlat(b.positions);
+    return '<div class="lane" data-bot="'+esc(b.slug)+'" style="--c:'+esc(b.color)+'"><div class="who"><span class="rank r'+(i+1)+'">'+(i+1)+(i===0?'st':i===1?'nd':i===2?'rd':'th')+'</span><b>'+esc(b.display_name)+'</b> <em>'+esc(b.tagline)+'</em>'+(hold?' · holding '+esc(b.positions):'')+'</div><div class="rail"></div><div class="flag">🏁</div>'+
+    '<div class="runner" style="left:'+pos.toFixed(1)+'%">'+avatar(b,(hold?'hold ':'')+moodClass(b))+'<div class="tag '+cls(b.pnl_all)+'">'+money(b.pnl_all,true)+'</div><div class="bubble">'+esc(b.last_fill||'')+'</div></div></div>';
+  }).join('');
+  if(first){setTimeout(function(){document.querySelectorAll('#sb .bubble').forEach(function(x){if(x.textContent)x.classList.add('show')});setTimeout(function(){document.querySelectorAll('#sb .bubble').forEach(function(x){x.classList.remove('show')})},4000)},900)}
+}
+function renderTicker(){
+  var last=state.fills.slice(-TICKER_N).reverse();
+  var items=last.length?last.map(function(f){var b=botOf(f.bot);return '<span><b style="color:'+esc(b.color)+'">'+esc(b.display_name.toUpperCase())+'</b>'+esc(f.side.toUpperCase())+' '+esc(f.ticker)+' <em class="'+cls(f.pnl)+'" style="font-style:normal">'+(f.side==='buy'?'opened':money(f.pnl,true))+'</em></span>'}).join(''):'<span>No fills booked yet</span>';
+  $('sb-ticker').innerHTML=items+items;
+}
+function renderBackers(){
+  $('sb-backers').innerHTML=ranked().map(function(b){return '<div class="backer" style="--c:'+esc(b.color)+'">'+avatar(b,'sm')+'<div style="flex:1"><div class="bn">'+esc(b.display_name)+'</div><div class="bt">'+esc(b.tagline)+' · all-time <b class="'+cls(b.pnl_all)+'">'+money(b.pnl_all,true)+'</b></div>'+tipsHtml(b)+'</div></div>'}).join('');
+}
+function tile(k,v,c,n,big,key){return '<div class="tile'+(big?' big':'')+'"><div class="k">'+k+'</div><div class="v '+(c||'')+'" data-key="'+key+'" data-n="'+(v===null?'':v)+'">'+money(v,!!c)+'</div>'+(n?'<div class="n">'+n+'</div>':'')+'</div>'}
+function renderHouse(){
+  var s=state.snapshot;
+  $('sb-house').innerHTML=
+    tile('Realized P/L · all-time',s.realized_pnl_all,cls(s.realized_pnl_all),'Booked, closed trades only',true,'pa')+
+    tile('Net vs $'+OPEN_STAKE+' open',s.net_vs_open,cls(s.net_vs_open),'After rent. This is the real score',true,'net')+
+    tile('Realized P/L · today',s.realized_pnl_today,cls(s.realized_pnl_today),'','','pt')+
+    tile('Combined sleeve',s.combined_sleeve,'','Book value of the house','','sl')+
+    tile('Shared RH cash',s.shared_rh_cash,'','Cash sitting in Robinhood','','rh')+
+   
